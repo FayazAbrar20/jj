@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monthly Budget Tracker</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+body{font-family:Arial,Helvetica,sans-serif;background:#f5f6fa;margin:0;padding:20px}
+.container{max-width:1100px;margin:auto}
+h1{margin-bottom:10px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;margin-bottom:20px}
+.card{background:white;padding:20px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.05)}
+label{font-size:14px;color:#555}
+input,select,button{width:100%;padding:10px;margin-top:5px;border-radius:6px;border:1px solid #ddd}
+button{background:#111;color:white;border:none;cursor:pointer}
+button:hover{background:#333}
+.table{width:100%;border-collapse:collapse}
+.table th,.table td{padding:10px;border-bottom:1px solid #eee;text-align:left}
+.income{color:green;font-weight:bold}
+.expense{color:red;font-weight:bold}
+.flex{display:flex;gap:20px;flex-wrap:wrap}
+.chart{flex:1;min-width:280px;background:white;padding:20px;border-radius:10px}
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>Monthly Budget Tracker</h1>
+
+<div class="grid">
+<div class="card"><b>Total Income</b><br><span id="income">$0</span></div>
+<div class="card"><b>Total Expenses</b><br><span id="expenses">$0</span></div>
+<div class="card"><b>Balance</b><br><span id="balance">$0</span></div>
+<div class="card"><b>Budget Left</b><br><span id="budgetLeft">$0</span></div>
+</div>
+
+<div class="card">
+<h3>Add Transaction</h3>
+<label>Title</label>
+<input id="title">
+
+<label>Type</label>
+<select id="type">
+<option value="expense">Expense</option>
+<option value="income">Income</option>
+</select>
+
+<label>Category</label>
+<input id="category" placeholder="Rent, Food, Salary...">
+
+<label>Amount</label>
+<input id="amount" type="number">
+
+<label>Date</label>
+<input id="date" type="date">
+
+<br><br>
+<button onclick="addTransaction()">Add Transaction</button>
+</div>
+
+<br>
+
+<div class="flex">
+<div class="chart">
+<canvas id="incomeChart"></canvas>
+</div>
+<div class="chart">
+<canvas id="categoryChart"></canvas>
+</div>
+</div>
+
+<br>
+
+<div class="card">
+<h3>Transaction History</h3>
+<table class="table">
+<thead>
+<tr>
+<th>Title</th>
+<th>Category</th>
+<th>Date</th>
+<th>Amount</th>
+<th></th>
+</tr>
+</thead>
+<tbody id="transactions"></tbody>
+</table>
+</div>
+
+</div>
+
+<script>
+let budget=2000
+let data=[]
+
+function format(n){return "$"+n}
+
+function addTransaction(){
+let title=document.getElementById("title").value
+let type=document.getElementById("type").value
+let category=document.getElementById("category").value
+let amount=parseFloat(document.getElementById("amount").value)
+let date=document.getElementById("date").value
+
+if(!title||!amount)return
+
+let item={id:Date.now(),title,type,category,amount,date}
+
+data.push(item)
+render()
+}
+
+function deleteTransaction(id){
+data=data.filter(t=>t.id!==id)
+render()
+}
+
+function render(){
+let income=0
+let expenses=0
+let categories={}
+
+let tbody=document.getElementById("transactions")
+tbody.innerHTML=""
+
+data.forEach(t=>{
+
+if(t.type==="income")income+=t.amount
+else expenses+=t.amount
+
+if(t.type==="expense"){
+categories[t.category]=(categories[t.category]||0)+t.amount
+}
+
+let row=`<tr>
+<td>${t.title}</td>
+<td>${t.category}</td>
+<td>${t.date}</td>
+<td class="${t.type}">${t.type==='income'?'+':'-'}$${t.amount}</td>
+<td><button onclick="deleteTransaction(${t.id})">X</button></td>
+</tr>`
+
+tbody.innerHTML+=row
+})
+
+let balance=income-expenses
+let budgetLeft=budget-expenses
+
+document.getElementById("income").innerText=format(income)
+document.getElementById("expenses").innerText=format(expenses)
+document.getElementById("balance").innerText=format(balance)
+document.getElementById("budgetLeft").innerText=format(budgetLeft)
+
+updateCharts(income,expenses,categories)
+}
+
+let incomeChart=new Chart(document.getElementById('incomeChart'),{
+type:'bar',
+data:{labels:['Income','Expenses'],datasets:[{data:[0,0]}]}
+})
+
+let categoryChart=new Chart(document.getElementById('categoryChart'),{
+type:'pie',
+data:{labels:[],datasets:[{data:[]}]} 
+})
+
+function updateCharts(income,expenses,categories){
+incomeChart.data.datasets[0].data=[income,expenses]
+incomeChart.update()
+
+categoryChart.data.labels=Object.keys(categories)
+categoryChart.data.datasets[0].data=Object.values(categories)
+categoryChart.update()
+}
+
+render()
+</script>
+
+</body>
+</html>
